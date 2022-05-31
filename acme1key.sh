@@ -18,7 +18,7 @@ PACKAGE_UPDATE=("apt-get -y update" "apt-get -y update" "yum -y update" "yum -y 
 PACKAGE_INSTALL=("apt -y install" "apt -y install" "yum -y install" "yum -y install")
 PACKAGE_UNINSTALL=("apt -y autoremove" "apt -y autoremove" "yum -y autoremove" "yum -y autoremove")
 
-[[ $EUID -ne 0 ]] && red "请在root用户下运行脚本" && exit 1
+[[ $EUID -ne 0 ]] && red "Silakan jalankan skrip di bawah pengguna root" && exit 1
 
 CMD=("$(grep -i pretty_name /etc/os-release 2>/dev/null | cut -d \" -f2)" "$(hostnamectl 2>/dev/null | grep -i system | cut -d : -f2)" "$(lsb_release -sd 2>/dev/null)" "$(grep -i description /etc/lsb-release 2>/dev/null | cut -d \" -f2)" "$(grep . /etc/redhat-release 2>/dev/null)" "$(grep . /etc/issue 2>/dev/null | cut -d \\ -f1 | sed '/^[ ]*$/d')")
 
@@ -30,11 +30,11 @@ for ((int = 0; int < ${#REGEX[@]}; int++)); do
     [[ $(echo "$SYS" | tr '[:upper:]' '[:lower:]') =~ ${REGEX[int]} ]] && SYSTEM="${RELEASE[int]}" && [[ -n $SYSTEM ]] && break
 done
 
-[[ -z $SYSTEM ]] && red "不支持当前VPS系统，请使用主流的操作系统" && exit 1
+[[ -z $SYSTEM ]] && red "Sistem VPS saat ini tidak didukung, silakan gunakan sistem operasi utama" && exit 1
 
 back2menu() {
-    green "所选操作执行完成"
-    read -p "请输入“y”退出，或按任意键回到主菜单：" back2menuInput
+    green "Operasi yang dipilih selesai"
+    read -p "Silakan masukkan "y" untuk keluar, atau tekan tombol apa saja untuk kembali ke menu utama：" back2menuInput
     case "$back2menuInput" in
         y) exit 1 ;;
         *) menu ;;
@@ -50,33 +50,33 @@ install_acme(){
     [[ -z $(type -P socat) ]] && ${PACKAGE_INSTALL[int]} socat
     [[ -z $(type -P cron) && $SYSTEM =~ Debian|Ubuntu ]] && ${PACKAGE_INSTALL[int]} cron && systemctl start cron systemctl enable cron
     [[ -z $(type -P crond) && $SYSTEM == CentOS ]] && ${PACKAGE_INSTALL[int]} cronie && systemctl start crond && systemctl enable crond
-    read -rp "请输入注册邮箱（例：admin@misaka.rest，或留空自动生成）：" acmeEmail
+    read -rp "Silakan masukkan email Anda yang terdaftar（contoh：admin@misaka.rest，atau biarkan kosong untuk menghasilkan secara otomatis）：" acmeEmail
     [[ -z $acmeEmail ]] && autoEmail=$(date +%s%N | md5sum | cut -c 1-32) && acmeEmail=$autoEmail@gmail.com
     curl https://get.acme.sh | sh -s email=$acmeEmail
     source ~/.bashrc
     bash ~/.acme.sh/acme.sh --upgrade --auto-upgrade
     bash ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     if [[ -n $(~/.acme.sh/acme.sh -v 2>/dev/null) ]]; then
-        green "Acme.sh证书申请脚本安装成功！"
+        green "Skrip aplikasi sertifikat Acme.sh berhasil diinstal！"
     else
-        red "抱歉，Acme.sh证书申请脚本安装失败"
-        green "建议如下："
-        yellow "1. 检查VPS的网络环境"
-        yellow "2. 脚本可能跟不上时代，建议截图发布到GitHub Issues或TG群询问"
+        red "Maaf, skrip permintaan sertifikat Acme.sh gagal dipasang"
+        green "saran di bawah ini："
+        yellow "1. Periksa lingkungan jaringan VPS"
+        yellow "2. Skrip mungkin tidak mengikuti waktu, disarankan untuk memposting tangkapan layar ke GitHub Issues atau grup TG untuk penyelidikan"
     fi
     back2menu
 }
 
 getSingleCert(){
-    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && red "未安装acme.sh，无法执行操作" && exit 1
+    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && red "acme.sh tidak diinstal, tidak dapat melakukan operasi" && exit 1
     WARPv4Status=$(curl -s4m8 https://www.cloudflare.com/cdn-cgi/trace -k | grep warp | cut -d= -f2)
     WARPv6Status=$(curl -s6m8 https://www.cloudflare.com/cdn-cgi/trace -k | grep warp | cut -d= -f2)
     ipv4=$(curl -s4m8 https://ip.gs)
     ipv6=$(curl -s6m8 https://ip.gs)
     realip=$(curl -sm8 ip.sb)
-    read -rp "请输入解析完成的域名:" domain
-    [[ -z $domain ]] && red "未输入域名，无法执行操作！" && exit 1
-    green "已输入的域名：$domain" && sleep 1
+    read -rp "Silakan masukkan nama domain yang diselesaikan:" domain
+    [[ -z $domain ]] && red "Tidak ada nama domain yang dimasukkan, operasi tidak dapat dilakukan！" && exit 1
+    green "nama domain yang dimasukkan：$domain" && sleep 1
     domainIP=$(curl -sm8 ipget.net/?ip=misaka.sama."$domain")
     if [[ -n $(echo $domainIP | grep nginx) ]]; then
         domainIP=$(curl -sm8 ipget.net/?ip="$domain")
@@ -96,16 +96,16 @@ getSingleCert(){
         fi
 
         if [[ -n $(echo $domainIP | grep nginx) ]]; then
-            yellow "域名解析无效，请检查域名是否填写正确或稍等几分钟等待解析完成再执行脚本"
+            yellow "Resolusi nama domain tidak valid, harap periksa apakah nama domain diisi dengan benar atau tunggu beberapa menit hingga resolusi selesai sebelum menjalankan skrip"
             exit 1
         elif [[ -n $(echo $domainIP | grep ":") || -n $(echo $domainIP | grep ".") ]]; then
             if [[ $domainIP != $ipv4 ]] && [[ $domainIP != $ipv6 ]] && [[ $domainIP != $realip ]]; then
-                green "${domain} 解析结果：（$domainIP）"
-                red "当前域名解析的IP与当前VPS使用的真实IP不匹配"
-                green "建议如下："
-                yellow "1. 请确保CloudFlare小云朵为关闭状态(仅限DNS)，其他域名解析网站设置同理"
-                yellow "2. 请检查DNS解析设置的IP是否为VPS的真实IP"
-                yellow "3. 脚本可能跟不上时代，建议截图发布到GitHub Issues或TG群询问"
+                green "${domain} Hasil parsing：（$domainIP）"
+                red "IP yang diselesaikan dengan nama domain saat ini tidak cocok dengan IP asli yang digunakan oleh VPS saat ini"
+                green "saran di bawah ini："
+                yellow "1. Pastikan CloudFlare dimatikan (hanya DNS), dan hal yang sama berlaku untuk situs web resolusi nama domain lainnya"
+                yellow "2. Silakan periksa apakah IP yang disetel oleh resolusi DNS adalah IP asli dari VPS"
+                yellow "3. Skrip mungkin tidak mengikuti waktu, disarankan untuk memposting tangkapan layar ke GitHub Issues atau grup TG untuk penyelidikan"
                 exit 1
             fi
         fi
@@ -115,20 +115,20 @@ getSingleCert(){
 }
 
 getDomainCert(){
-    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && red "未安装acme.sh，无法执行操作" && exit 1
+    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && red "acme.sh tidak diinstal, tidak dapat melakukan operasi" && exit 1
     ipv4=$(curl -s4m8 https://ip.gs)
     ipv6=$(curl -s6m8 https://ip.gs)
-    read -rp "请输入需要申请证书的泛域名（输入格式：example.com）：" domain
-    [[ -z $domain ]] && red "未输入域名，无法执行操作！" && exit 1
+    read -rp "Harap masukkan nama domain generik yang perlu mengajukan permohonan sertifikat (format input: example.com) ：" domain
+    [[ -z $domain ]] && red "Tidak ada nama domain yang dimasukkan, operasi tidak dapat dilakukan！" && exit 1
     if [[ $(echo ${domain:0-2}) =~ cf|ga|gq|ml|tk ]]; then
-        red "检测为Freenom免费域名，由于CloudFlare API不支持，故无法申请！"
+        red "Itu terdeteksi sebagai nama domain gratis Freenom. Itu tidak dapat diterapkan karena CloudFlare API tidak mendukungnya.！"
         back2menu
     fi
-    read -rp "请输入CloudFlare Global API Key：" GAK
-    [[ -z $GAK ]] && red "未输入CloudFlare Global API Key，无法执行操作！" && exit 1
+    read -rp "Silakan masukkan Kunci API Global CloudFlare：" GAK
+    [[ -z $GAK ]] && red "Kunci API Global CloudFlare tidak dimasukkan, operasi tidak dapat dilakukan！" && exit 1
     export CF_Key="$GAK"
-    read -rp "请输入CloudFlare的登录邮箱：" CFemail
-    [[ -z $domain ]] && red "未输入CloudFlare的登录邮箱，无法执行操作！" && exit 1
+    read -rp "Silakan masukkan email login CloudFlare Anda：" CFemail
+    [[ -z $domain ]] && red "Operasi tidak dapat dilakukan tanpa memasukkan email login CloudFlare！" && exit 1
     export CF_Email="$CFemail"
     if [[ -z $ipv4 ]]; then
         bash ~/.acme.sh/acme.sh --issue --dns dns_cf -d "*.${domain}" -d "${domain}" -k ec-256 --listen-v6
@@ -140,19 +140,19 @@ getDomainCert(){
 }
 
 getSingleDomainCert(){
-    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && red "未安装Acme.sh，无法执行操作" && exit 1
+    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && red "Acme.sh tidak diinstal, tidak dapat melakukan operasi" && exit 1
     ipv4=$(curl -s4m8 https://ip.gs)
     ipv6=$(curl -s6m8 https://ip.gs)
-    read -rp "请输入需要申请证书的域名：" domain
+    read -rp "Silakan masukkan nama domain yang ingin Anda ajukan sertifikatnya：" domain
     if [[ $(echo ${domain:0-2}) =~ cf|ga|gq|ml|tk ]]; then
-        red "检测为Freenom免费域名，由于CloudFlare API不支持，故无法申请！"
+        red "Itu terdeteksi sebagai nama domain gratis Freenom. Itu tidak dapat diterapkan karena CloudFlare API tidak mendukungnya.！"
         back2menu
     fi
-    read -rp "请输入CloudFlare Global API Key：" GAK
-    [[ -z $GAK ]] && red "未输入CloudFlare Global API Key，无法执行操作！" && exit 1
+    read -rp "Silakan masukkan Kunci API Global CloudFlare：" GAK
+    [[ -z $GAK ]] && red "Kunci API Global CloudFlare tidak dimasukkan, operasi tidak dapat dilakukan！" && exit 1
     export CF_Key="$GAK"
-    read -rp "请输入CloudFlare的登录邮箱：" CFemail
-    [[ -z $domain ]] && red "未输入CloudFlare的登录邮箱，无法执行操作！" && exit 1
+    read -rp "Silakan masukkan email login CloudFlare Anda：" CFemail
+    [[ -z $domain ]] && red "Operasi tidak dapat dilakukan tanpa memasukkan email login CloudFlare！" && exit 1
     export CF_Email="$CFemail"
     if [[ -z $ipv4 ]]; then
         bash ~/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -k ec-256 --listen-v6
@@ -168,56 +168,56 @@ checktls() {
         if [[ -s /root/cert.crt && -s /root/private.key ]]; then
             sed -i '/--cron/d' /etc/crontab >/dev/null 2>&1
             echo "0 0 * * * root bash /root/.acme.sh/acme.sh --cron -f >/dev/null 2>&1" >> /etc/crontab
-            green "证书申请成功！脚本申请到的证书（cert.crt）和私钥（private.key）已保存到 /root 文件夹"
-            yellow "证书crt路径如下：/root/cert.crt"
-            yellow "私钥key路径如下：/root/private.key"
+            green "Aplikasi sertifikat berhasil! Sertifikat yang diminta oleh skrip（cert.crt）dan kunci pribadi（private.key）Disimpan ke /root folder"
+            yellow "Jalur crt sertifikat adalah sebagai berikut:：/root/cert.crt"
+            yellow "Jalur kunci pribadi adalah sebagai berikut:：/root/private.key"
             back2menu
         else
-            red "抱歉，证书申请失败"
-            green "建议如下："
-            yellow "1. 自行检测防火墙是否打开，如使用80端口申请模式时，请关闭防火墙或放行80端口"
-            yellow "2. 同一域名多次申请可能会触发Let's Encrypt官方风控，请更换域名或等待7天后再尝试执行脚本"
-            yellow "3. 脚本可能跟不上时代，建议截图发布到GitHub Issues或TG群询问"
+            red "Maaf, permintaan sertifikat gagal"
+            green "saran di bawah ini："
+            yellow "1. Periksa apakah firewall terbuka sendiri Jika Anda menggunakan mode aplikasi port 80, silakan tutup firewall atau lepaskan port 80."
+            yellow "2. Beberapa aplikasi untuk nama domain yang sama dapat memicu kontrol risiko resmi Let's Encrypt, harap ubah nama domain atau tunggu 7 hari sebelum mencoba menjalankan skrip"
+            yellow "3. Skrip mungkin tidak mengikuti waktu, disarankan untuk memposting tangkapan layar ke GitHub Issues atau grup TG untuk penyelidikan"
             back2menu
         fi
     fi
 }
 
 revoke_cert() {
-    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && yellow "未安装acme.sh，无法执行操作" && exit 1
+    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && yellow "acme.sh tidak diinstal, tidak dapat melakukan operasi" && exit 1
     bash ~/.acme.sh/acme.sh --list
-    read -rp "请输入要撤销的域名证书（复制Main_Domain下显示的域名）:" domain
-    [[ -z $domain ]] && red "未输入域名，无法执行操作！" && exit 1
+    read -rp "Silakan masukkan sertifikat nama domain yang akan dicabut (salin nama domain yang ditampilkan di bawah Main_Domain):" domain
+    [[ -z $domain ]] && red "Tidak ada nama domain yang dimasukkan, operasi tidak dapat dilakukan！" && exit 1
     if [[ -n $(bash ~/.acme.sh/acme.sh --list | grep $domain) ]]; then
         bash ~/.acme.sh/acme.sh --revoke -d ${domain} --ecc
         bash ~/.acme.sh/acme.sh --remove -d ${domain} --ecc
         rm -rf ~/.acme.sh/${domain}_ecc
         rm -f /root/cert.crt /root/private.key
-        green "撤销${domain}的域名证书成功"
+        green "menarik kembali${domain}Sertifikat nama domain berhasil"
         back2menu
     else
-        red "未找到你输入的${domain}域名证书，请自行检查！"
+        red "Masukan yang Anda masukkan tidak ditemukan${domain}Sertifikat nama domain, silakan periksa sendiri！"
         back2menu
     fi
 }
 
 renew_cert() {
-    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && yellow "未安装acme.sh，无法执行操作" && exit 1
+    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && yellow "acme.sh tidak diinstal, tidak dapat melakukan operasi" && exit 1
     bash ~/.acme.sh/acme.sh --list
-    read -rp "请输入要续期的域名证书（复制Main_Domain下显示的域名）:" domain
-    [[ -z $domain ]] && red "未输入域名，无法执行操作！" && exit 1
+    read -rp "Sertifikat nama domain, silakan periksa sendiri :" domain
+    [[ -z $domain ]] && red "Tidak ada nama domain yang dimasukkan, operasi tidak dapat dilakukan！" && exit 1
     if [[ -n $(bash ~/.acme.sh/acme.sh --list | grep $domain) ]]; then
         bash ~/.acme.sh/acme.sh --renew -d ${domain} --force --ecc
         checktls
         back2menu
     else
-        red "未找到你输入的${domain}域名证书，请再次检查域名输入正确"
+        red "Sertifikat nama domain ${domain} yang Anda masukkan tidak ditemukan, harap periksa kembali apakah nama domain dimasukkan dengan benar"
         back2menu
     fi
 }
 
 uninstall() {
-    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && yellow "未安装Acme.sh，卸载程序无法执行" && exit 1
+    [[ -z $(~/.acme.sh/acme.sh -v 2>/dev/null) ]] && yellow "Uninstaller gagal menjalankan Acme.sh tidak diinstal" && exit 1
     curl https://get.acme.sh | sh
     ~/.acme.sh/acme.sh --uninstall
     sed -i '/--cron/d' /etc/crontab >/dev/null 2>&1
@@ -230,23 +230,23 @@ menu() {
     clear
     red "=================================="
     echo "                           "
-    red "    Acme.sh 域名证书一键申请脚本     "
-    red "          by 小御坂的破站           "
+    red "    Skrip aplikasi sekali klik sertifikat nama domain Acme.sh     "
+    red "          oleh stasiun rusak Misaka           "
     echo "                           "
     red "  Site: https://owo.misaka.rest  "
     echo "                           "
     red "=================================="
     echo "                           "
-    green "1. 安装Acme.sh域名证书申请脚本（必须安装）"
-    green "2. 申请单域名证书（80端口申请）"
-    green "3. 申请单域名证书（CF API申请）（无需解析）（不支持freenom域名）"
-    green "4. 申请泛域名证书（CF API申请）（无需解析）（不支持freenom域名）"
-    green "5. 撤销并删除已申请的证书"
-    green "6. 手动续期域名证书"
-    green "7. 卸载Acme.sh域名证书申请脚本"
-    green "0. 退出"
+    green "1. Instal skrip aplikasi sertifikat nama domain Acme.sh (harus diinstal)"
+    green "2. Mengajukan permohonan sertifikat nama domain tunggal (80 aplikasi port)"
+    green "3. Mengajukan permohonan sertifikat nama domain tunggal (aplikasi CF API) (tidak diperlukan resolusi) (nama domain freenom tidak didukung)"
+    green "4. Mengajukan permohonan sertifikat nama domain generik (aplikasi CF API) (tidak diperlukan resolusi) (nama domain freenom tidak didukung)"
+    green "5. Cabut dan hapus sertifikat yang diminta"
+    green "6. Perpanjang sertifikat nama domain secara manual"
+    green "7. Copot pemasangan skrip aplikasi sertifikat nama domain Acme.sh"
+    green "0. berhenti"
     echo "         "
-    read -rp "请输入数字:" NumberInput
+    read -rp "Silakan masukkan angka:" NumberInput
     case "$NumberInput" in
         1) install_acme ;;
         2) getSingleCert ;;
